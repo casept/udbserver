@@ -33,7 +33,7 @@ fn copy_range_to_buf(data: &[u8], offset: u64, length: usize, buf: &mut [u8]) ->
     copy_to_buf(data, buf)
 }
 
-fn step_cb(uc: &mut Unicorn<()>, _addr: u64, _size: u32) {
+fn step_cb(uc: &mut Unicorn<Box<()>>, _addr: u64, _size: u32) {
     if *STEP_STATE.get() {
         STEP_STATE.replace(false);
         return;
@@ -44,7 +44,7 @@ fn step_cb(uc: &mut Unicorn<()>, _addr: u64, _size: u32) {
     crate::udbserver_resume(WATCH_ADDR.take()).expect("Failed to resume udbserver");
 }
 
-fn watch_cb(uc: &mut Unicorn<()>, _mem_type: MemType, addr: u64, _size: usize, _value: i64) -> bool {
+fn watch_cb(uc: &mut Unicorn<Box<()>>, _mem_type: MemType, addr: u64, _size: usize, _value: i64) -> bool {
     if WATCH_ADDR.is_none() {
         WATCH_ADDR.replace(addr);
         if STEP_HOOK.is_none() {
@@ -55,7 +55,7 @@ fn watch_cb(uc: &mut Unicorn<()>, _mem_type: MemType, addr: u64, _size: usize, _
 }
 
 pub struct Emu {
-    uc: &'static mut Unicorn<'static, ()>,
+    uc: &'static mut Unicorn<'static, Box<()>>,
     reg: Register,
     code_hook: UcHookId,
     mem_hook: UcHookId,
@@ -67,7 +67,7 @@ pub struct Emu {
 }
 
 impl Emu {
-    pub fn new(uc: &'static mut Unicorn<'static, ()>, code_hook: UcHookId, mem_hook: UcHookId) -> DynResult<Emu> {
+    pub fn new(uc: &'static mut Unicorn<'static, Box<()>>, code_hook: UcHookId, mem_hook: UcHookId) -> DynResult<Emu> {
         let arch = uc.get_arch();
         let query_mode = uc.query(Query::MODE).expect("Failed to query mode");
         let mode = Mode::try_from(query_mode as i32).unwrap();

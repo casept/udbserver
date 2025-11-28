@@ -31,7 +31,8 @@ fn wait_for_tcp(port: u16) -> DynResult<TcpStream> {
     Ok(stream)
 }
 
-pub fn udbserver<T>(uc: &mut Unicorn<T>, port: u16, start_addr: u64) -> DynResult<()> {
+pub fn udbserver<T: Sized>(uc: &mut Unicorn<Box<T>>, port: u16, start_addr: u64) -> DynResult<()> {
+    assert_eq!(std::mem::size_of::<Box<()>>(), std::mem::size_of::<Box<T>>());
     let code_hook = uc.add_code_hook(1, 0, |_, _, _| {}).expect("Failed to add empty code hook");
     let mem_hook = uc
         .add_mem_hook(HookType::MEM_READ, 1, 0, |_, _, _, _, _| true)
@@ -41,7 +42,7 @@ pub fn udbserver<T>(uc: &mut Unicorn<T>, port: u16, start_addr: u64) -> DynResul
             .expect("Failed to add udbserver hook");
     }
     let emu = emu::Emu::new(
-        unsafe { std::mem::transmute::<&mut Unicorn<T>, &'static mut Unicorn<'static, ()>>(uc) },
+        unsafe { std::mem::transmute::<&mut Unicorn<Box<T>>, &'static mut Unicorn<'static, Box<()>>>(uc) },
         code_hook,
         mem_hook,
     )?;
